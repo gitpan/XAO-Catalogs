@@ -23,6 +23,9 @@ use XAO::Objects;
 
 use base XAO::Objects->load(objname => 'Atom');
 
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.9 2005/01/14 02:08:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+
 ###############################################################################
 
 =item category_hash_to_array ($)
@@ -169,7 +172,7 @@ sub map_category ($$$$) {
             my $dst_cat=$self->normalize_category_path($obj->get('dst_cat'));
             push(@{$category_cache->{$src_cat}},$dst_cat);
         }
-        keys %{$category_cache} || eprint "Empty CategoryMap table";
+        keys %{$category_cache} || dprint "Empty CategoryMap table";
     }
 
     dprint "path=$path";
@@ -212,18 +215,19 @@ Pure virtual method that is supposed to translate all categories from
 RawXML container (first argument) to Categories container (second
 argument).
 
-You must override that method in derived classes.
-
 Returns a reference to the hash that contains a map between external and
 internal category IDs. Pass this hash reference to the
 map_xml_products() method.
+
+Should be overriden unless your catalog has no categories information
+whatsoever.
 
 =cut
 
 sub map_xml_categories ($$$) {
     my $self=shift;
-
-    throw $self "map_xml_categories - pure virtual method called";
+    dprint ref($self)."::map_xml_categories - default empty method called";
+    return { };
 }
 
 ###############################################################################
@@ -313,9 +317,10 @@ sub store_categories_hash ($$$) {
     #
     my %reverse_map;
     dprint "Building reverse lookup cache";
-    foreach my $cobj ($storage->values) {
-        my $path=$cobj->get('name');
-        my $parent_id=$cobj->get('parent_id');
+    foreach my $cid ($storage->keys) {
+        my $cobj=$storage->get($cid);
+        my ($path,$parent_id)=$cobj->get('name','parent_id');
+
         while(defined($parent_id) && length($parent_id)) {
             my $c=$storage->get($parent_id);
             if(!$c) {
@@ -329,7 +334,8 @@ sub store_categories_hash ($$$) {
         next unless $path;
 
         $path=$self->normalize_category_path($path);
-        $reverse_map{$path}=$cobj->container_key;
+        $reverse_map{$path}=$cid;
+        dprint "$path => $cid";
     }
 
     ##
@@ -446,6 +452,8 @@ __END__
 
 =head1 AUTHORS
 
-Copyright (c) 2001 XAO Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-Andrew Maltsev <am@xao.com>
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/

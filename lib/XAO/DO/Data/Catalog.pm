@@ -69,6 +69,9 @@ use XAO::Utils;
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Hash');
 
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Catalog.pm,v 1.3 2005/01/14 02:08:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+
 ###############################################################################
 
 =item import_catalog (%)
@@ -103,20 +106,23 @@ sub import_catalog ($%) {
     my $xmlcont=$self->get('Data');
 
     ##
-    # Category map. If it is empty it will be polulated with some
+    # Category map. If it is empty it will be popululated with some
     # initial values.
     #
     my $category_map=$self->get('CategoryMap');
-    $imap->check_category_map($category_map);
+    if($imap->can('check_category_map')) {
+        $imap->check_category_map($category_map);
+    }
 
     ##
     # First mapping categories
     #
-    my $catcont=$args->{categories} ||
-        throw Error::Simple ref($self)."::import_catalog - no required 'categories' argument found";
-    my $category_ids=$imap->map_xml_categories($xmlcont,
-                                                $catcont,
-                                                $category_map);
+    my $category_ids;
+    if($imap->can('map_xml_categories')) {
+        my $catcont=$args->{categories} ||
+            throw Error::Simple ref($self)."::import_catalog - no required 'categories' argument found";
+        $category_ids=$imap->map_xml_categories($xmlcont,$catcont,$category_map);
+    }
 
     ##
     # And products now.
@@ -138,7 +144,7 @@ sub import_catalog ($%) {
                               'and',
                               [ 'source_seq', 'ne', $seq ]);
     foreach my $id (@$ids) {
-        dprint "deleting $id";
+        dprint "Deleting $id";
         $prodcont->delete($id);
     }
 }
@@ -167,6 +173,8 @@ __END__
 
 =head1 AUTHORS
 
-Copyright (c) 2001 XAO Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-Andrew Maltsev <am@xao.com>
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
